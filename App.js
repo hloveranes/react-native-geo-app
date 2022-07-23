@@ -6,106 +6,154 @@
  * @flow strict-local
  */
 
-import React from 'react';
-import type {Node} from 'react';
+import React, {useState, useEffect} from 'react';
+import publicIP from 'react-native-public-ip';
+
 import {
   SafeAreaView,
   ScrollView,
-  StatusBar,
   StyleSheet,
   Text,
-  useColorScheme,
+  TextInput,
   View,
 } from 'react-native';
 
-import {
-  Colors,
-  DebugInstructions,
-  Header,
-  LearnMoreLinks,
-  ReloadInstructions,
-} from 'react-native/Libraries/NewAppScreen';
+// component
+import StyledButton from './src/component/StyledButton.js';
 
-const Section = ({children, title}): Node => {
-  const isDarkMode = useColorScheme() === 'dark';
-  return (
-    <View style={styles.sectionContainer}>
-      <Text
-        style={[
-          styles.sectionTitle,
-          {
-            color: isDarkMode ? Colors.white : Colors.black,
-          },
-        ]}>
-        {title}
-      </Text>
-      <Text
-        style={[
-          styles.sectionDescription,
-          {
-            color: isDarkMode ? Colors.light : Colors.dark,
-          },
-        ]}>
-        {children}
-      </Text>
-    </View>
-  );
-};
+const App = () => {
+  const [ipAddr, setIpAddr] = useState('');
+  const [ipInfo, setIpInfo] = useState({});
+  const [searchHistory, setSearchHistory] = useState([]);
 
-const App: () => Node = () => {
-  const isDarkMode = useColorScheme() === 'dark';
+  useEffect(() => {
+    init();
+  }, []);
 
-  const backgroundStyle = {
-    backgroundColor: isDarkMode ? Colors.darker : Colors.lighter,
+  const init = () => {
+    setIpAddr('');
+    getDeviceIp();
+    setSearchHistory([]);
+  };
+
+  const getDeviceIp = () => {
+    publicIP()
+      .then(ip => {
+        getIpInfo(ip);
+      })
+      .catch(error => {
+        console.log(error);
+      });
+  };
+
+  const searchPublicIp = () => {
+    setSearchHistory(prev => [...prev, ipAddr]);
+    getIpInfo(ipAddr);
+  };
+
+  const getIpInfo = async ip_address => {
+    let response = await fetch(`https://ipinfo.io/${ip_address}/geo`);
+    let json = await response.json();
+    setIpInfo(json);
   };
 
   return (
-    <SafeAreaView style={backgroundStyle}>
-      <StatusBar barStyle={isDarkMode ? 'light-content' : 'dark-content'} />
-      <ScrollView
-        contentInsetAdjustmentBehavior="automatic"
-        style={backgroundStyle}>
-        <Header />
-        <View
-          style={{
-            backgroundColor: isDarkMode ? Colors.black : Colors.white,
-          }}>
-          <Section title="Step One">
-            Edit <Text style={styles.highlight}>App.js</Text> to change this
-            screen and then come back to see your edits.
-          </Section>
-          <Section title="See Your Changes">
-            <ReloadInstructions />
-          </Section>
-          <Section title="Debug">
-            <DebugInstructions />
-          </Section>
-          <Section title="Learn More">
-            Read the docs to discover what to do next:
-          </Section>
-          <LearnMoreLinks />
+    <SafeAreaView>
+      <View>
+        <Text style={styles.title}>Welcome to react native Ip Info app</Text>
+        <TextInput
+          style={styles.input}
+          onChangeText={setIpAddr}
+          value={ipAddr}
+        />
+        <StyledButton
+          onPress={searchPublicIp}
+          title="Ip Info"
+          buttonStyle={styles.buttonInfo}
+          textStyle={styles.text}
+        />
+        <StyledButton
+          onPress={init}
+          title="Clear"
+          buttonStyle={styles.buttonClear}
+          textStyle={styles.text}
+        />
+        <View style={styles.info}>
+          <Text>{ipInfo.ip}</Text>
+          <Text>{ipInfo.hostname}</Text>
+          <Text>{ipInfo.city} </Text>
+          <Text>{ipInfo.region}</Text>
+          <Text>{ipInfo.country}</Text>
+          <Text>{ipInfo.loc}</Text>
+          <Text>{ipInfo.org} </Text>
+          <Text>{ipInfo.postal}</Text>
+          <Text>{ipInfo.timezone} </Text>
+          <Text>{ipInfo.readme}</Text>
         </View>
-      </ScrollView>
+        {searchHistory.length > 0 && (
+          <ScrollView style={styles.info}>
+            <Text style={styles.title}>History</Text>
+            {searchHistory.map((item, index) => {
+              return (
+                <Text key={index} onPress={() => getIpInfo(item)}>
+                  {item}
+                </Text>
+              );
+            })}
+          </ScrollView>
+        )}
+      </View>
     </SafeAreaView>
   );
 };
 
 const styles = StyleSheet.create({
-  sectionContainer: {
-    marginTop: 32,
-    paddingHorizontal: 24,
+  title: {
+    marginTop: 20,
+    marginLeft: 12,
+    marginRight: 12,
+    marginBottom: 15,
+    fontSize: 20,
+    fontWeight: 'bold',
+    textAlign: 'center',
   },
-  sectionTitle: {
-    fontSize: 24,
-    fontWeight: '600',
+  input: {
+    height: 40,
+    margin: 12,
+    borderWidth: 1,
+    padding: 10,
+    borderRadius: 5,
   },
-  sectionDescription: {
-    marginTop: 8,
-    fontSize: 18,
-    fontWeight: '400',
+  buttonInfo: {
+    margin: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+    borderRadius: 4,
+    elevation: 3,
+    backgroundColor: 'blue',
   },
-  highlight: {
-    fontWeight: '700',
+  buttonClear: {
+    margin: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 32,
+    borderRadius: 4,
+    elevation: 3,
+    backgroundColor: 'black',
+  },
+  text: {
+    fontSize: 16,
+    lineHeight: 21,
+    fontWeight: 'bold',
+    letterSpacing: 0.25,
+    color: 'white',
+  },
+  info: {
+    marginLeft: 12,
+    marginRight: 12,
   },
 });
 
